@@ -87,6 +87,7 @@ def parse_rsn_info(info_bytes):
         'capabilities':     caps,
     }
 
+
 def detect_enterprise(akm_list):
     """WPA3-Enterprise if any AKM in {8,9}, else WPA2 if in {1,3,5}, else unknown."""
     wpa2 = {1, 3, 5}
@@ -96,6 +97,7 @@ def detect_enterprise(akm_list):
     if any(a in wpa2 for a in akm_list):
         return 'WPA2-Enterprise'
     return 'Unknown EAP version or PSK authentication'
+
 
 def mfp_required(cap):
     """802.11w MFP required if RSN-capabilities bit 0x0080 set."""
@@ -140,7 +142,6 @@ def process_packet(pkt):
         else:
             bssid = pkt.src if hasattr(pkt, 'src') else '<unknown>'
 
-        # Find existing networks with this BSSID
         matches = [k for k in networks if k[1].lower() == bssid.lower()]
         if not matches:
             matches = [('<unknown>', bssid)]
@@ -154,12 +155,10 @@ def process_packet(pkt):
             else:
                 net['seen_eapol'] = True
 
-        # Done handling this packet
         return
 
     # ——— Pure EAP frames (no EAPOL) ———
     if pkt.haslayer(EAP):
-        # Could be tunneled in another layer, or pure Ethernet EAP
         if pkt.haslayer(Dot11):
             bssid = pkt[Dot11].addr3 or '<unknown>'
         else:
@@ -170,7 +169,8 @@ def process_packet(pkt):
             networks[key]['eap_types'].add(int(e.type))
         return
 
-def main():
+
+def parse_args():
     parser = argparse.ArgumentParser(
         description='Inspect EAP-Enterprise parameters in WPA2/3 networks'
     )
@@ -184,10 +184,13 @@ def main():
                         help='Channel to tune interface to (optional)')
 
     args = parser.parse_args()
-
-    # Enforce --time with --iface
     if args.iface and args.time is None:
         parser.error('--time is required when capturing live traffic')
+    return args
+
+
+def main():
+    args = parse_args()
 
     # Auto-tune channel if requested
     if args.iface and args.current_channel:
@@ -197,7 +200,6 @@ def main():
             stderr=subprocess.DEVNULL,
         )
 
-    # Load or capture
     try:
         if args.file:
             for pkt in rdpcap(args.file):
@@ -210,13 +212,11 @@ def main():
     except Exception as e:
         print(f'[!] Capture/parse error: {e}')
 
-    # Reporting
     found_any = False
     for (ssid, bssid), info in networks.items():
         if args.bssid and bssid.lower() != args.bssid.lower():
             continue
 
-        # Skip networks with no info
         if (info['group'] is None
             and not info['pairwise']
             and not info['akms']
@@ -229,14 +229,10 @@ def main():
         print(f'SSID:   {ssid}')
         print(f'BSSID:  {bssid}')
 
-        # Enterprise type
         ent = detect_enterprise(info['akms'])
         print(f'Protocol version:        {ent}')
-
-        # MFP
         print(f'MFP Required:      {"Yes" if mfp_required(info["caps"]) else "No"}')
 
-        # Ciphers
         grp = info['group']
         grp_name = CIPHER_MAP.get(grp, f'Unknown({grp})')
         pw_names = [CIPHER_MAP.get(p, f'Unknown({p})')
@@ -244,7 +240,6 @@ def main():
         print(f'Group cipher:     {grp_name}')
         print(f'Pairwise ciphers: {", ".join(pw_names) or "None"}')
 
-        # EAP/EAPOL
         if info['eap_types']:
             entries = []
             for code in sorted(info['eap_types']):
