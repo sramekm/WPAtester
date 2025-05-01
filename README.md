@@ -51,7 +51,9 @@ Additionally, some tools have their own specific dependencies listed below.
 - **Location**: `DragonDrain/`
 - **Dependencies**:
   - External `dragondrain-and-time` utility (must be installed and in your `$PATH`):
-    - Repository: https://github.com/vanhoefm/dragondrain-and-time/
+    - Repository: https://github.com/vanhoefm/dragondrain-and-time
+  - Loaded `ath_masker` module
+    - Repository: https://github.com/vanhoefm/ath_masker
   - Aircrack-ng tools
 - **Description**: Launches CPU-clogging on the SAE handshake using the Dragondrain methodologies.
 
