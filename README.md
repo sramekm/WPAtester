@@ -72,7 +72,7 @@ Additionally, some tools have their own specific dependencies listed below.
 - **Location**: `EAPEvilTwin/`
 - **Dependencies**:
   - `pexpect` (install via `pip3 install pexpect`)
-  - `eaphammer` (install via `pip3 install eaphammer` or from https://github.com/aircrack-ng/eaphammer)
+  - `eaphammer` (install via `pip3 install eaphammer`)
   - Standard Python libraries: `argparse`, `sys`, `re`
 - **Description**: Non-interactive wrapper for **eaphammer** that automates an Evil Twin credential-capture attack. Supports GTC and MSCHAPv2 downgrades.
 
