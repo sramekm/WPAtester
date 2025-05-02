@@ -63,9 +63,18 @@ Additionally, some tools have their own specific dependencies listed below.
 
 - **Location**: `EAPInspector/`
 - **Dependencies**:
-  - `scapy`
+  - `scapy` (install via `pip3 install scapy`)
   - (Optional) `pyshark` for more advanced packet parsing (`pip3 install pyshark`)
 - **Description**: Parses and analyzes EAP frames captured on the network to aid in debugging and security assessment of 802.1X authentications. The frames can be captured live via the script or uploaded from existing capture.
+
+#### EAPEvilTwin
+
+- **Location**: `EAPEvilTwin/`
+- **Dependencies**:
+  - `pexpect` (install via `pip3 install pexpect`)
+  - `eaphammer` (install via `pip3 install eaphammer` or from https://github.com/aircrack-ng/eaphammer)
+  - Standard Python libraries: `argparse`, `sys`, `re`
+- **Description**: Non-interactive wrapper for **eaphammer** that automates an Evil Twin credential-capture attack. Supports GTC and MSCHAPv2 downgrades.
 
 ---
 
