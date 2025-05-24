@@ -1,6 +1,6 @@
 # WPAtester
 
-A collection of Python-based WPA testing tools for automating and simplifying common wireless security tasks. Each tool is organized in its own folder. **All scripts must be launched under `sudo`.**
+A collection of Python-based WPA testing tools for automating and simplifying common wireless security tasks. Each tool is organized in its own folder. **All scripts must be launched under `root`.**
 
 ---
 
@@ -23,7 +23,7 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### Downgrade
 
-- **Location**: `Downgrade/`
+- **Location**: `ptdowngrade/`
 - **Dependencies**:
   - `scapy` (install via `pip3 install scapy`)
   - Aircrack-ng tools (for capturing and cracking handshakes)
@@ -31,7 +31,7 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### CommitOverflow
 
-- **Location**: `CommitOverflow/`
+- **Location**: `ptcommitoverflow/`
 - **Dependencies**:
   - `scapy` (install via `pip3 install scapy`)
   - `random` and `sys` (standard Python libraries)
@@ -39,7 +39,7 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### ChannelSwitch
 
-- **Location**: `ChannelSwitch/`
+- **Location**: `ptchannelswitch/`
 - **Dependencies**:
   - `scapy` (install via `pip3 install scapy`)
   - `iw` (for setting interface channel)
@@ -48,10 +48,10 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### DragonDrain
 
-- **Location**: `DragonDrain/`
+- **Location**: `ptdragondrain/`
 - **Dependencies**:
   - External `dragondrain-and-time` utility (must be installed and in your `$PATH`):
-    - Repository: https://github.com/vanhoefm/dragondrain-and-time
+    - Repository: https://github.com/sramekm/dragondrain-and-time
   - Loaded `ath_masker` module
     - Repository: https://github.com/vanhoefm/ath_masker
   - Aircrack-ng tools
@@ -61,7 +61,7 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### EAPInspector
 
-- **Location**: `EAPInspector/`
+- **Location**: `pteapinspector/`
 - **Dependencies**:
   - `scapy` (install via `pip3 install scapy`)
   - (Optional) `pyshark` for more advanced packet parsing (`pip3 install pyshark`)
@@ -69,7 +69,7 @@ Additionally, some tools have their own specific dependencies listed below.
 
 #### EAPEvilTwin
 
-- **Location**: `EAPEvilTwin/`
+- **Location**: `pteapeviltwin/`
 - **Dependencies**:
   - `pexpect` (install via `pip3 install pexpect`)
   - `eaphammer` (install via `pip3 install eaphammer`)
@@ -86,12 +86,12 @@ Each tool supports a help menu to list available options. From the project root,
 sudo python3 <tool_script> -h
 ```
 
-Replace `<tool_script>` with the main Python script of the desired tool (e.g., `Downgrade/downgrade.py`).
+Replace `<tool_script>` with the main Python script of the desired tool (e.g., `ptdowngrade/ptdowngrade.py`).
 
 Example:
 
 ```bash
-sudo python3 Downgrade/downgrade.py -h
+sudo python3 ptdowngrade/ptdowngrade.py -h
 ```
 
 ---
